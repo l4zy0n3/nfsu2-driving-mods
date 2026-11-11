@@ -1,6 +1,6 @@
 # Stable release gates
 
-Current version: `0.1.0-alpha.3`. Packaging and offline checks are preparation, not approval of physical driving behavior. No automatic public/stable release is configured.
+Current version: `0.1.0-alpha.4`. Packaging and offline checks are preparation, not approval of physical driving behavior. No automatic public/stable release is configured.
 
 - [x] Select GPL-3.0-or-later; identify the GPL-2.0-or-later DualSense references and preserve attribution.
 - [ ] Complete the final release source/dependency provenance review.

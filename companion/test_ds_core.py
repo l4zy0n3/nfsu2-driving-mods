@@ -80,14 +80,16 @@ class CoreTests(unittest.TestCase):
         lighter = feedback(s | {'engine_inertia': .00015}, DEFAULTS, 0)[0]
         self.assertNotEqual(lighter, feedback(s | {'engine_inertia': .0006}, DEFAULTS, 0)[0])
 
-    def test_shift_light_uses_exact_current_car_threshold(self):
+    def test_shift_light_follows_live_build_redline_not_gear_recommendation(self):
         s = self.sample() | dict(shift_light_rpm=6000, idle_rpm=850, rpm_limit=9500)
-        at = feedback(s | {'rpm': 6000}, DEFAULTS, .125)
-        above = feedback(s | {'rpm': 6001}, DEFAULTS, .125)
-        self.assertEqual(at[2], (110, 5, 0))
-        self.assertEqual(above[2:], ((65, 35, 140), 31))
-        self.assertEqual(feedback(s | {'rpm': 6001}, DEFAULTS, 0)[3], 0)
+        self.assertEqual(feedback(s | {'rpm': 6001}, DEFAULTS, .125)[2], (0, 70, 12))
+        self.assertEqual(feedback(s | {'rpm': 9499}, DEFAULTS, .125)[2], (110, 5, 0))
+        self.assertEqual(feedback(s | {'rpm': 9500}, DEFAULTS, .125)[2:], ((65, 35, 140), 31))
+        self.assertEqual(feedback(s | {'rpm': 9500}, DEFAULTS, 0)[3], 0)
         self.assertEqual(feedback(s | {'stalled': True}, DEFAULTS, 0)[3], 0)
+        # Same car, changed engine build: follow the new live limit immediately.
+        self.assertEqual(feedback(s | {'rpm': 7000, 'rpm_limit': 7000}, DEFAULTS, .125)[2:], ((65, 35, 140), 31))
+        self.assertEqual(feedback(s | {'rpm': 7000, 'rpm_limit': 9000}, DEFAULTS, .125)[2], (100, 45, 0))
 
     def test_clutch_breakover_judder_and_release_gates(self):
         s = self.sample() | dict(bite_start=.2, bite_end=.8, engine_inertia=.0003,

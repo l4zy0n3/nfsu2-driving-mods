@@ -132,16 +132,15 @@ def feedback(sample, config, now):
             right = effect([round(x * gain) for x in (0, 0, 1, 1, 1, 1, 2, 2, 2, 1)])
     color, leds = (0, 0, 0), 0
     if config['leds']:
-        # The extension carries the exact current-gear HUD shift-light threshold.
-        shift = sample.get('shift_light_rpm', sample['rpm_limit'])
-        threshold = shift if shift > 0 else sample['rpm_limit']
+        # The current engine specification includes the installed build's RPM limit.
+        threshold = sample['rpm_limit']
         idle = sample.get('idle_rpm', 0)
         ratio = clamp((sample['rpm'] - idle) / (threshold - idle)) if threshold > idle else 0
         color = (70, 20, 0) if sample['cranking'] else (85, 0, 0) if sample['stalled'] else (0, 40, 30)
         if not sample['stalled'] and not sample['cranking']:
             color = (0, 70, 12) if ratio < .7 else (100, 45, 0) if ratio < .9 else (110, 5, 0)
             leds = (1 << min(5, int(ratio * 5.99))) - 1
-            if shift > 0 and sample['rpm'] > shift:
+            if threshold > 0 and sample['rpm'] >= threshold:
                 color = (65, 35, 140) if int(now * 8) % 2 else (10, 0, 30)
                 leds = 31 if int(now * 8) % 2 else 0
     triggers = [OFF, OFF, OFF]

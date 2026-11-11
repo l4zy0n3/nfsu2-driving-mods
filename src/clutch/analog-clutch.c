@@ -549,8 +549,8 @@ static VOID CALLBACK release_button_keys(HWND window,UINT message,UINT_PTR timer
     }
     for(int i=0;i<3;i++)if(!focused||!valid||(i!=1&&(LONG)(now-key_until[i])>=0))synthetic_key(i,0);
     LeaveCriticalSection(&button_lock);
-    rumble_tick(focused,now);
-    dualsense_tick(focused,now);
+    rumble_tick(focused);
+    dualsense_tick(focused);
 }
 static void dispatch_buttons(WheelButtonActions actions,int enabled)
 {

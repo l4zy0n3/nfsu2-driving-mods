@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-alpha.4 — live redline and feedback timing
+
+- Drive LED progression and the redline flash from the current engine specification's RPM limit, including installed upgrades. Do not substitute the native per-gear shift recommendation.
+- Read the current clock after capturing feedback state. A queued Windows timer timestamp can precede the latest physics sample and falsely expire it.
+
 ## 0.1.0-alpha.3 — lightbar protocol correction
 
 - Reset LED control once when opening the USB controller. Send subsequent RGB/player-LED updates without restarting the built-in light-on animation.

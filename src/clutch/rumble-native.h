@@ -69,8 +69,9 @@ static void rumble_stop(void)
  if(pad_vibrate&&rumble_index<XUSER_MAX_COUNT){XINPUT_VIBRATION zero={0};pad_vibrate(rumble_index,&zero);}
  rumble_index=XUSER_MAX_COUNT;rumble_schedule=(RumbleSchedule){0};
 }
-static void rumble_tick(int focused,DWORD now)
+static void rumble_tick(int focused)
 {
+ DWORD now=GetTickCount();
  if(dualsense_owns_feedback(now)){rumble_stop();return;}
  if(!pad_state||!pad_vibrate||source_kind!=SOURCE_GAMEPAD){rumble_stop();return;}
  DWORD index=XUSER_MAX_COUNT;XINPUT_STATE state;
@@ -78,6 +79,7 @@ static void rumble_tick(int focused,DWORD now)
  if(index!=rumble_index){rumble_stop();rumble_invalidate();rumble_index=index;}
  if(index==XUSER_MAX_COUNT)return;
  EnterCriticalSection(&rumble_lock);
+ now=GetTickCount(); /* Input polling may outlive the timer message timestamp. */
  RumbleLevels levels=rumble_levels(rumble_mail.sample,rumble_mail.enabled,rumble_mail.gain,1,focused,now);
  LeaveCriticalSection(&rumble_lock);
  if(!rumble_due(&rumble_schedule,levels,now))return;

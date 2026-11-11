@@ -105,6 +105,9 @@ int main(void)
   .speed=-20,.slip=.75f,.load=.6f,.mismatch=-12,.kick=.4f};
  unsigned char packet[DUALSENSE_BYTES];
  assert(dualsense_frame(packet,s,1,1,1000));
+ /* A queued timer stamp can precede the latest physics sample; use a fresh clock. */
+ assert(!dualsense_frame(packet,s,1,1,999));
+ assert(dualsense_frame(packet,s,1,1,1000));
  assert(packet[0]=='N'&&packet[1]=='S'&&packet[2]=='D'&&packet[3]=='5');
  assert(dualsense_u32(packet+16)==63&&dualsense_u32(packet+20)==2);
  for(unsigned clutch=0;clutch<=3;clutch++)for(unsigned throttle=0;throttle<=3;throttle++){

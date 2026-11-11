@@ -37,3 +37,5 @@ Standard rumble uses the configured XInput slot. Optional DualSense output requi
 `Effects.Stalling=0` is the default. Set it to 1 to test stalling and clutch-plus-ignition restarts. `Handbrake.Enabled=0` restores native handbrake handling. A tap toggles; a hold of at least 350 ms releases on button release. Release the control after focus loss or reconnect before using it again.
 
 The Linux companion's touchpad left area provides tap play/pause and swipe next/previous via playerctl. The right area activates gyro look while held. The former widget-toggle gesture has no action in this package. `companion/bridge.py set <setting> <JSON-value>` adjusts supported effects; `status` reports state. Hardware amplitude and gesture feel still require validation.
+
+The lightbar progresses from green to amber toward the current build's redline, then flashes purple at or above that RPM limit. The limit is read from the active engine specification, not a fixed value or car-name table. A different gear's native shift recommendation does not move this redline cue.

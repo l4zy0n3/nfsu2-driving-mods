@@ -10,6 +10,8 @@ int main(void)
  assert(sample.valid&&fabs(sample.slip-.3)<1e-12&&sample.kick==1);
  RumbleLevels strong=rumble_levels(sample,1,50,1,1,1000);
  assert(strong.left>0&&strong.right>0&&strong.left<=32767&&strong.right<=32767);
+ assert(!rumble_levels(sample,1,50,1,1,999).left); /* Old timer stamp precedes sample. */
+ assert(rumble_levels(sample,1,50,1,1,1000).left>0);
  assert(rumble_due(&schedule,strong,1000));
  RumbleLevels changed={1,1};assert(!rumble_due(&schedule,changed,1039));assert(rumble_due(&schedule,changed,1040));
  assert(rumble_due(&schedule,(RumbleLevels){0},1041));assert(!rumble_due(&schedule,(RumbleLevels){0},1042));

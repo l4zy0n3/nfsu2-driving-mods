@@ -155,10 +155,12 @@ static void dualsense_close(void)
  if(dualsense_file!=INVALID_HANDLE_VALUE)CloseHandle(dualsense_file);
  dualsense_view=NULL;dualsense_mapping=NULL;dualsense_file=INVALID_HANDLE_VALUE;
 }
-static void dualsense_tick(int focused,DWORD now)
+static void dualsense_tick(int focused)
 {
  int enabled;DualSenseSample sample;unsigned char packet[DUALSENSE_BYTES];
  EnterCriticalSection(&dualsense_lock);enabled=dualsense_mail.enabled;sample=dualsense_mail.sample;LeaveCriticalSection(&dualsense_lock);
+ /* WM_TIMER carries queue time; read the clock after the physics snapshot. */
+ DWORD now=GetTickCount();
  if(dualsense_failed||(!enabled&&!dualsense_view))return;
  int valid=dualsense_frame(packet,sample,enabled,focused,now);
  if(dualsense_written&&now-dualsense_last_write<40&&!(dualsense_was_valid&&!valid))return;
