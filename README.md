@@ -2,7 +2,7 @@
 
 Original clutch, gearbox, handbrake, controller feedback and camera extensions for Need for Speed: Underground 2.
 
-**Status: public FOSS alpha, `0.1.0-alpha.2`. Not a stable release.**
+**Status: public FOSS alpha, `0.1.0-alpha.3`. Not a stable release.**
 This checkout contains our mod source. The ASIs are 32-bit Windows binaries loaded by the existing game under Wine/Proton. The optional DualSense companion is a Linux program. This does not port or redistribute the game.
 
 ## Scope

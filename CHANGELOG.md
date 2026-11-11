@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-alpha.3 — lightbar protocol correction
+
+- Reset LED control once when opening the USB controller. Send subsequent RGB/player-LED updates without restarting the built-in light-on animation.
+- Keep native modules and clutch force tuning unchanged from alpha.2.
+
 ## 0.1.0-alpha.2 — controller feedback corrections
 
 - Address the DualSense PipeWire sink by object serial rather than node ID, with a regression fixture where those values differ.

@@ -11,6 +11,32 @@ from ds_core import MAGIC
 
 
 class MailboxTests(unittest.TestCase):
+    def test_connect_resets_only_led_control_before_regular_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            entry = Path(directory) / 'hidraw7'
+            (entry / 'device').mkdir(parents=True)
+            (entry / 'device/uevent').write_text('HID_ID=0003:0000054C:00000CE6\n')
+            def ioctl(_fd, operation, data, _mutate):
+                if operation == 0x80084803:
+                    data[:] = struct.pack('<IHH', 3, 0x054c, 0x0ce6)
+            with patch.object(bridge, 'Path') as paths, \
+                 patch.object(bridge.os, 'open', return_value=7), \
+                 patch.object(bridge.fcntl, 'ioctl', side_effect=ioctl), \
+                 patch.object(bridge, 'gyro_calibration', return_value=()), \
+                 patch.object(bridge, 'accel_calibration', return_value=()), \
+                 patch.object(bridge.os, 'write', return_value=63) as write:
+                paths.return_value.glob.return_value = [entry]
+                device = bridge.Device()
+                self.assertTrue(device.connect())
+                reset = bytearray(63)
+                reset[0], reset[2] = 2, 8
+                write.assert_called_once_with(7, bytes(reset))
+                report = bridge.output_report(color=(0, 70, 12))
+                device.output(report, 1)
+                self.assertEqual(write.call_count, 2)
+                write.assert_called_with(7, report)
+                self.assertEqual(report[2], 0x14)
+
     def test_feedback_ownership_follows_transport_and_feature_state(self):
         audio = Mock()
         sample = {'active': True}

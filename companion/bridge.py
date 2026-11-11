@@ -138,6 +138,10 @@ class Device:
             except ValueError as error:
                 print('Gravity correction disabled:', error, flush=True)
                 self.accel_factors = None
+            # Take LED control once; repeated light-on setup overrides RGB colors.
+            reset = bytearray(63)
+            reset[0], reset[2] = 2, 8
+            self.output(bytes(reset), time.monotonic(), force=True)
             self.last_output = None
             return True
         return False

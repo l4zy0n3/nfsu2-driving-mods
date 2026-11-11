@@ -51,6 +51,8 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(data[11:22], OFF)
         self.assertEqual(data[22:33], effect([1] * 10))
         self.assertEqual(data[45:48], bytes([4, 5, 6]))
+        self.assertEqual(data[2], 0x14)  # RGB and player LEDs, no repeated reset.
+        self.assertEqual(data[39:44], bytes(5))  # No built-in lightbar animation/setup.
         self.assertEqual(data[7], 0)  # Microphone not enabled by the bridge.
 
     def test_stale_inactive_disable_and_manual(self):

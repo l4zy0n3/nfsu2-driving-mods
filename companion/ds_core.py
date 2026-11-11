@@ -162,8 +162,7 @@ def output_report(left=OFF, right=OFF, color=(0, 0, 0), leds=0, speaker=False):
     packet[2] = 0x14
     # Keep the kernel's speaker/headset routing and hardware volume untouched.
     packet[11:22], packet[22:33] = right, left
-    packet[39] = 2
-    packet[42] = 1
+    # Do not restart the lightbar's built-in animation on RGB updates.
     packet[44] = leds | 0x20
     packet[45:48] = bytes(color)
     return bytes(packet)
