@@ -74,7 +74,7 @@ class RendererTests(unittest.TestCase):
         values = dict(clutch_load=1, clutch_mismatch=160)
         positive = ds.AudioEffects().render(sample(**values), 0)
         negative = ds.AudioEffects().render(sample(clutch_load=1, clutch_mismatch=-160), 0)
-        np.testing.assert_array_equal(positive, negative)
+        self.assertTrue(np.array_equal(positive, negative))
         self.assertFalse(ds.AudioEffects().render(sample(**values, clutch_press=1), 0).any())
         self.assertFalse(ds.AudioEffects().render(sample(clutch_mismatch=160), 0).any())
         half = ds.AudioEffects().render(sample(clutch_load=1, clutch_mismatch=80), 0)
