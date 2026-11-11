@@ -25,6 +25,9 @@ $(OUT)/look-selftest: src/camera/right-stick-look.c | $(OUT)
 $(OUT)/mirror-selftest: src/camera/mirror-panels.c | $(OUT)
 	$(CC) $(CFLAGS) -DSELF_TEST $< -lm -o $@
 
+$(OUT)/test_controller_throttle: compat/controller-throttle.c | $(OUT)
+	$(CC) $(CFLAGS) -DSELF_TEST $< -o $@
+
 $(OUT)/NFSU2.AnalogClutch.asi: src/clutch/analog-clutch.c $(wildcard src/clutch/*.h src/common/*.h) Makefile | $(OUT)
 	$(MINGW) $(CFLAGS) $(LDFLAGS) $< -ldinput8 -ldxguid -lole32 -luser32 -lwinmm -ladvapi32 -lm -o $@
 
@@ -37,8 +40,8 @@ $(OUT)/NFSU2.MirrorPanels.asi: src/camera/mirror-panels.c Makefile | $(OUT)
 $(OUT)/NFSU2.GearGrind.wav: tools/grind_sound.py | $(OUT)
 	python3 $< $@
 
-test: all $(TEST_BINS) $(OUT)/clutch-selftest $(OUT)/look-selftest $(OUT)/mirror-selftest
-	@set -e; for test in $(TEST_BINS) $(OUT)/clutch-selftest $(OUT)/look-selftest $(OUT)/mirror-selftest; do ./$$test; done
+test: all $(TEST_BINS) $(OUT)/clutch-selftest $(OUT)/look-selftest $(OUT)/mirror-selftest $(OUT)/test_controller_throttle
+	@set -e; for test in $(TEST_BINS) $(OUT)/clutch-selftest $(OUT)/look-selftest $(OUT)/mirror-selftest $(OUT)/test_controller_throttle; do ./$$test; done
 	python3 -m unittest discover -s companion -p 'test_*.py'
 	python3 -m unittest discover -s tests -p 'test_*.py'
 

@@ -9,7 +9,7 @@ This checkout contains our mod source. The ASIs are 32-bit Windows binaries load
 
 The fourteen retained features are listed in [FEATURES.md](docs/FEATURES.md). The main module supplies a synchronizer clutch/gearbox, per-car clutch profiles, clutch kick, optional stalling/ignition, grinding, paddle auto-clutch, tap/hold handbrake, neutral coasting integration and feedback telemetry. Two optional ASIs provide camera look and mirror/status panels.
 
-The repository excludes personal throttle/steering fixes, steering assistance, AWD changes, tyre/thermal extensions, extra drivetrain audio, RHD camera changes, unlocks, save edits, loading/traffic fixes, graphics wrappers and Spotify widgets. It contains no game assets, saves, Wine prefix, third-party mod binaries or proprietary decompilation exports.
+The alpha package excludes personal throttle/steering fixes, steering assistance, AWD changes, tyre/thermal extensions, extra drivetrain audio, RHD camera changes, unlocks, save edits, loading/traffic fixes, graphics wrappers and Spotify widgets. An optional [controller throttle compatibility correction](compat/README.md) is available as source after the clean-install test reproduced that input issue; its ASI is not installed by the alpha package. This repository contains no game assets, saves, Wine prefix, third-party mod binaries or proprietary decompilation exports.
 
 ## Compatibility
 
