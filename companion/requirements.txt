@@ -1,0 +1,2 @@
+# Runtime dependency; also available as the distribution's python3-numpy package.
+numpy>=1.26,<3

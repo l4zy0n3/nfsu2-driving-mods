@@ -1,0 +1,8 @@
+{
+  "platform": "32-bit Windows ASI under Wine/Proton; Linux-only optional DualSense companion",
+  "required_files": {
+    "SPEED2.EXE": "b237be5385bdfdf8d99c3e6e89ecb0934a55956c41ac052af68f6997194d3606",
+    "dinput8.dll": "9f48dc0a498f9c3e17bf734519d83abd6fbb93acddac899596ab4a1e751482de"
+  },
+  "note": "Exact dependency build required. Neither file is redistributed. These hashes identify the tested local target, not all retail 1.2 releases."
+}
