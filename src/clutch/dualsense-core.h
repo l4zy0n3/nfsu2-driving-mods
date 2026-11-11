@@ -11,6 +11,7 @@ enum {DS_VALID=1,DS_FOCUSED=2,DS_STALLED=4,DS_CRANKING=8,DS_GRINDING=16,DS_MANUA
 enum {DS_EXT_PROFILE=1,DS_EXT_WHEELS=2};
 typedef struct {
  uint32_t tick,flags,counter;int valid,gear;
+ unsigned clutch_trigger,throttle_trigger; /* 0=none, 1=left, 2=right. */
  float rpm,rpm_limit,clutch_press,throttle,speed,slip,load,mismatch,kick;
  int profile_valid,car_type;
  float bite_start,bite_end,idle_rpm,engine_inertia,clutch_capacity_factor,shift_light_rpm,engine_peak;
@@ -117,6 +118,8 @@ static int dualsense_frame(unsigned char out[DUALSENSE_BYTES],DualSenseSample s,
  for(unsigned i=0;i<sizeof(fields)/sizeof(*fields);i++)if(!isfinite(fields[i]))return 0;
  if(s.rpm<0||s.rpm>100000||s.rpm_limit<0||s.rpm_limit>100000||fabsf(s.speed)>100000||fabsf(s.mismatch)>1e7)return 0;
  uint32_t flags=DS_VALID|DS_FOCUSED|(s.flags&(DS_STALLED|DS_CRANKING|DS_GRINDING|DS_MANUAL));
+ if(s.clutch_trigger<=2&&s.throttle_trigger<=2&&(!s.clutch_trigger||s.clutch_trigger!=s.throttle_trigger))
+  flags|=(s.clutch_trigger<<6)|(s.throttle_trigger<<8);
  dualsense_put_u32(out+16,flags);dualsense_put_u32(out+20,(uint32_t)s.gear);
  dualsense_put_float(out+24,s.rpm);dualsense_put_float(out+28,s.rpm_limit);
  dualsense_put_float(out+32,dualsense_unit(s.clutch_press));dualsense_put_float(out+36,dualsense_unit(s.throttle));

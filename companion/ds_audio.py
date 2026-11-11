@@ -48,7 +48,9 @@ def audio_target(graph):
         if (item.get('type') == 'PipeWire:Interface:Node' and
                 str(props.get('device.id')) in devices and props.get('media.class') == 'Audio/Sink' and
                 str(props.get('audio.channels')) == '4' and positions == ['FL', 'FR', 'RL', 'RR']):
-            candidates.append(str(item['id']))
+            serial = str(props.get('object.serial', ''))
+            if serial.isdigit() and int(serial) > 0:
+                candidates.append(serial)
     if len(candidates) != 1:
         raise ValueError('Need exactly one four-channel USB DualSense sink (FL FR RL RR)')
     return candidates[0]

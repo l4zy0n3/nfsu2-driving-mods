@@ -5,12 +5,29 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import bridge
 from ds_core import MAGIC
 
 
 class MailboxTests(unittest.TestCase):
+    def test_feedback_ownership_follows_transport_and_feature_state(self):
+        audio = Mock()
+        sample = {'active': True}
+        config = bridge.DEFAULTS | {'enabled': True, 'haptics': True, 'speaker': False}
+        for running in (True, False):
+            audio.tick.return_value = running
+            self.assertEqual(bridge.audio_feedback(audio, sample, config, 1), running)
+            audio.tick.assert_called_with(sample, 1)
+        for override in ({'enabled': False}, {'haptics': False, 'speaker': False}):
+            bridge.audio_feedback(audio, sample, config | override, 2)
+            audio.tick.assert_called_with(None, 2)
+        bridge.audio_feedback(audio, None, config, 3)
+        audio.tick.assert_called_with(None, 3)
+        bridge.audio_feedback(audio, sample, config | {'haptics': False, 'speaker': True}, 4, True)
+        audio.set_gain.assert_called_with(0)
+        self.assertEqual(audio.speaker_gain, 0)
+
     def test_portable_media_commands(self):
         self.assertEqual(bridge.media_command('playPause'), ['playerctl', 'play-pause'])
         self.assertEqual(bridge.media_command('next'), ['playerctl', 'next'])

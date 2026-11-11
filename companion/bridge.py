@@ -204,13 +204,21 @@ def demo_sample(elapsed):
                 clutch_load=.8 if 6 <= elapsed < 9 else 0,
                 clutch_mismatch=100 if 6 <= elapsed < 9 else 0, clutch_kick=0,
                 gear=2, stalled=False, cranking=False, grinding=False,
-                active=True, manual=True, wheel_data_valid=True,
+                active=True, manual=True, wheel_data_valid=True, clutch_trigger=1, throttle_trigger=2,
                 physics_sequence=int(elapsed * 25), slip_left=0, slip_right=0, **loads)
 
 
 def media_command(action):
     commands = {'playPause': 'play-pause', 'next': 'next', 'previous': 'previous'}
     return ['playerctl', commands[action]] if action in commands else None
+
+
+def audio_feedback(audio, sample, config, now, headphones=False):
+    audio.set_gain(config['haptic_gain'] if config['haptics'] else 0)
+    audio.speaker_gain = config['speaker_gain'] if config['speaker'] and not headphones else 0
+    enabled = config['enabled'] and (config['haptics'] or config['speaker'])
+    # Release native rumble ownership if the optional PCM transport cannot run.
+    return audio.tick(sample if enabled else None, now)
 
 
 def daemon():
@@ -285,12 +293,9 @@ def daemon():
                     output_sample = sample if active else None
                     left, right, color, leds = feedback(output_sample, config, now)
                     device.output(output_report(left, right, color, leds, active and config['speaker']), now, keepalive=active)
-                    commands.write(owner=alive and config['enabled'], active=gyro_active and active, yaw=yaw, pitch=pitch)
-                    # Even speaker-only mode must keep PCM and native rumble ownership coordinated.
-                    audio_sample = dict(sample) if active else None
-                    audio.set_gain(config['haptic_gain'] if config['haptics'] else 0)
-                    audio.speaker_gain = config['speaker_gain'] if config['speaker'] and not (device.last_input or {}).get('headphones') else 0
-                    audio.tick(audio_sample, now)
+                    pcm_active = audio_feedback(audio, output_sample, config, now,
+                                                (device.last_input or {}).get('headphones', False))
+                    commands.write(owner=pcm_active, active=gyro_active and active, yaw=yaw, pitch=pitch)
                 else:
                     active = False
                     commands.write()

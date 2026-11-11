@@ -17,6 +17,15 @@ int main(void)
     assert(binding_press(BIND_LT,0,128,0)>.50f&&binding_press(BIND_LT,0,128,0)<.51f);
     assert(clutch_axis("X")==0&&clutch_axis("Y")==1&&clutch_axis("SLIDER1")==7);
     assert(clutch_axis("bad")==-1);
+    assert(clutch_axis("Rx")==3&&clutch_axis("Ry")==4&&clutch_axis("Rz")==5);
+    assert(clutch_axis("S0")==6&&clutch_axis("S1")==7);
+    for(unsigned value=0;value<=255;value++){
+        assert(throttle_event(0x92,BIND_RT,0,255-value,value)==(0x92|(value<<8)));
+        assert(throttle_event(0x92,BIND_LT,0,value,255-value)==(0x92|(value<<8)));
+        assert(throttle_event(0x93,BIND_RT,0,0,value)==0x93);
+    }
+    assert(throttle_event(0x92,pad_binding("A"),0x1000,0,0)==0xff92);
+    assert(throttle_event(0x92,pad_binding("A"),0,255,255)==0x92);
     int latch=0;
     assert(!consume_ignition_start(&latch,0,1,1,1));
     assert(!consume_ignition_start(&latch,1,1,0,1));

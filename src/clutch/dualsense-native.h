@@ -60,6 +60,10 @@ static void dualsense_publish_drive(void *drive)
  s.throttle=*(float *)((char *)self+0x20c); /* Native processed throttle, not a trigger-axis guess. */
  s.clutch_press=manual?1-*(float *)((char *)self+0x2f4):0;
  s.flags=manual?DS_MANUAL:0;
+ if(source_kind==SOURCE_GAMEPAD){
+  s.clutch_trigger=pad_clutch==BIND_LT?1:pad_clutch==BIND_RT?2:0;
+  s.throttle_trigger=pad_throttle==BIND_LT?1:pad_throttle==BIND_RT?2:0;
+ }
  double slip=0,loads[4]={0},slips[4]={0};unsigned contacts[4]={0};
  uintptr_t wheel_ids[4]={0};float wheel_xy[4][2]={{0}};
  int wheels_ok=1,layout_ok=1;

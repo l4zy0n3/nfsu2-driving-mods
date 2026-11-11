@@ -11,7 +11,28 @@ class CoreTests(unittest.TestCase):
         return dict(rpm=3000, rpm_limit=8000, clutch_press=.5, throttle=.4,
                     speed_mps=20, wheel_slip=.1, clutch_load=.4, clutch_mismatch=25,
                     clutch_kick=.2, gear=3, active=True, manual=True,
-                    stalled=False, cranking=False, grinding=False)
+                    stalled=False, cranking=False, grinding=False, clutch_trigger=1, throttle_trigger=2)
+
+    def test_trigger_effects_follow_bindings_or_remain_off(self):
+        sample = self.sample()
+        left, right, *_ = feedback(sample, DEFAULTS, 0)
+        self.assertNotEqual(left, OFF)
+        self.assertNotEqual(right, OFF)
+        swapped = sample | {'clutch_trigger': 2, 'throttle_trigger': 1}
+        self.assertEqual(feedback(swapped, DEFAULTS, 0)[:2], (right, left))
+        for routes in ({'clutch_trigger': 0, 'throttle_trigger': 0},
+                       {'clutch_trigger': None, 'throttle_trigger': None}):
+            self.assertEqual(feedback(sample | routes, DEFAULTS, 0)[:2], (OFF, OFF))
+
+    def test_telemetry_trigger_routes_and_invalid_collisions(self):
+        data = bytearray(128)
+        for clutch, throttle in ((0, 0), (1, 2), (2, 1), (0, 2), (1, 0)):
+            struct.pack_into('<6I', data, 0, MAGIC, 1, 2, 100, 3 | (clutch << 6) | (throttle << 8), 2)
+            decoded = telemetry(data)
+            self.assertEqual((decoded['clutch_trigger'], decoded['throttle_trigger']), (clutch, throttle))
+        for flags in (3 | (3 << 6), 3 | (3 << 8), 3 | (1 << 6) | (1 << 8), 1024):
+            struct.pack_into('<I', data, 16, flags)
+            self.assertIsNone(telemetry(data))
 
     def test_trigger_encoding(self):
         data = effect([0, 1, 8] + [0] * 7)
@@ -109,7 +130,7 @@ class CoreTests(unittest.TestCase):
         struct.pack_into('<9f', data, 24, 3000, 8000, .5, .4, 20, .1, .4, 25, .2)
         self.assertTrue(telemetry(data)['active'])
         self.assertIsNone(telemetry(data[:-1]))
-        for offset, value in ((0, 0), (4, 2), (8, 3), (16, 127), (20, 100)):
+        for offset, value in ((0, 0), (4, 2), (8, 3), (16, 1024), (20, 100)):
             bad = bytearray(data); struct.pack_into('<I', bad, offset, value)
             self.assertIsNone(telemetry(bad))
         for offset in range(24, 80, 4):

@@ -107,6 +107,14 @@ int main(void)
  assert(dualsense_frame(packet,s,1,1,1000));
  assert(packet[0]=='N'&&packet[1]=='S'&&packet[2]=='D'&&packet[3]=='5');
  assert(dualsense_u32(packet+16)==63&&dualsense_u32(packet+20)==2);
+ for(unsigned clutch=0;clutch<=3;clutch++)for(unsigned throttle=0;throttle<=3;throttle++){
+  s.clutch_trigger=clutch;s.throttle_trigger=throttle;
+  assert(dualsense_frame(packet,s,1,1,1000));
+  unsigned routes=clutch<=2&&throttle<=2&&(!clutch||clutch!=throttle)?(clutch<<6)|(throttle<<8):0;
+  assert(dualsense_u32(packet+16)==(63|routes));
+ }
+ s.clutch_trigger=s.throttle_trigger=0;
+ assert(dualsense_frame(packet,s,1,1,1000));
  assert(value(packet+24)==4400&&value(packet+28)==8500&&value(packet+32)==.5f);
  assert(value(packet+36)==.25f&&value(packet+40)==-20&&value(packet+52)==-12);
  for(unsigned i=60;i<80;i++)assert(packet[i]==0);

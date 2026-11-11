@@ -100,6 +100,8 @@ static int controller_event_target(int direction,int before,int after,int pendin
 }
 static int controller_routed_request(int before,int after)
 {return before>=0&&before<=7?before:after;}
+static int controller_native_steering(int gamepad,int verified,int captured)
+{return gamepad&&verified&&captured;}
 /* Feedback for the existing clutch interlock; no synchronizer or damage simulation. */
 static int grinding_shift(int enabled,int paddles,int h,int actual,int admitted,int maximum,float foot,float rpm)
 {
@@ -248,6 +250,8 @@ int main(void)
     assert(controller_routed_request(2,0)==2); /* Braking cannot select reverse. */
     assert(controller_routed_request(2,3)==2); /* Shift events are latched separately. */
     assert(controller_routed_request(-1,3)==3);
+    for(int bits=0;bits<8;bits++)
+        assert(controller_native_steering(bits&1,bits&2,bits&4)==(bits==7));
     assert(controller_event_target(-1,2,1,2,1,1,0)==1); /* Cancel a pending first. */
     assert(engagement(-100,65535,0)==0 && engagement(70000,65535,0)==1);
     assert(engagement(10,10,10)==1);
@@ -421,7 +425,7 @@ static PadStateFn pad_state;
 static int controller_mode,source_kind=SOURCE_AUTO,axis_index=1;
 static int clutch_key=86,ignition_key=73,toggle_key=VK_F7,wheel_ignition=-1;
 static DWORD gamepad_index;
-static unsigned pad_clutch=0x100,pad_ignition=0x80;
+static unsigned pad_clutch=0x100,pad_ignition=0x80,pad_throttle;
 static int handbrake_enabled=1;
 static const DWORD axis_offsets[]={DIJOFS_X,DIJOFS_Y,DIJOFS_Z,DIJOFS_RX,DIJOFS_RY,DIJOFS_RZ,DIJOFS_SLIDER(0),DIJOFS_SLIDER(1)};
 static char realism_path[MAX_PATH];
@@ -439,9 +443,12 @@ static int load_bindings(void)
     pad_clutch=pad_binding(text);
     GetPrivateProfileStringA("Controls","GamepadIgnition","RTHUMB",text,sizeof(text),realism_path);
     pad_ignition=pad_binding(text);
+    GetPrivateProfileStringA("Controls","GamepadThrottle","Native",text,sizeof(text),realism_path);
+    pad_throttle=!strcmp(text,"Native")?0:pad_binding(text);
     return source_kind>=0&&clutch_key>0&&clutch_key<=255&&ignition_key>=0&&ignition_key<=255&&
         toggle_key>=0&&toggle_key<=255&&gamepad_index<XUSER_MAX_COUNT&&wheel_ignition>=-1&&wheel_ignition<128&&
         pad_clutch!=~0u&&pad_clutch!=0&&pad_ignition!=~0u&&pad_clutch!=pad_ignition&&
+        pad_throttle!=~0u&&(!pad_throttle||(pad_throttle!=pad_clutch&&pad_throttle!=pad_ignition))&&
         (pad_ignition!=0x10||gamepad_index==0)&&clutch_key!=ignition_key&&
         (!toggle_key||(toggle_key!=clutch_key&&toggle_key!=ignition_key));
 }
@@ -564,7 +571,7 @@ __declspec(dllexport) const char *__cdecl NFSU2RealismStatus(void)
     if(status_until&&(LONG)(status_until-GetTickCount())>0)return realistic?"REALISM ON":"REALISM OFF | WHEEL FIX";
     if(!realistic||!player_engine)return NULL;
     if(!stall_enabled)return input_lost?"CLUTCH | INPUT LOST - DRIVE DISCONNECTED":synchronizer_model?"SYNCHRONIZER CLUTCH | STALLING OFF":"SPRING CLUTCH | STALLING OFF";
-    if(controller_mode&&motor.stalled)return clutch_down?"ENGINE STALLED | HOLD START TO IGNITE":"ENGINE STALLED | HOLD L2 + START";
+    if(controller_mode&&motor.stalled)return clutch_down?"ENGINE STALLED | HOLD IGNITION":"ENGINE STALLED | HOLD CLUTCH + IGNITION";
     return starter_message(1,motor.stalled,starter,clutch_down);
 }
 
@@ -585,6 +592,19 @@ static int controller_sample(float *value,int *ignition)
     *value=1-binding_press(pad_clutch,state.Gamepad.wButtons,state.Gamepad.bLeftTrigger,state.Gamepad.bRightTrigger);
     if(ignition)*ignition=binding_press(pad_ignition,state.Gamepad.wButtons,state.Gamepad.bLeftTrigger,state.Gamepad.bRightTrigger)>=.95f;
     return 1;
+}
+typedef struct {uint32_t type,unused,event;void *scan;uint32_t binding,range,param,key;} Scanner;
+_Static_assert(sizeof(Scanner)==32&&offsetof(Scanner,scan)==12,"native scanner ABI");
+typedef int (__cdecl *ScanFn)(void *,unsigned *,unsigned,Scanner *,void *);
+static int __cdecl scan_throttle(void *node,unsigned *unknown,unsigned flags,Scanner *config,void *joystick)
+{
+    if(joystick!=(void *)0x8655a0||source_kind!=SOURCE_GAMEPAD||!pad_throttle||
+       (config!=(Scanner *)0x7fe190&&config!=(Scanner *)0x7fe1b0))
+        return ((ScanFn)0x579150)(node,unknown,flags,config,joystick);
+    XINPUT_STATE state={0};
+    if(!pad_state||pad_state(gamepad_index,&state)!=ERROR_SUCCESS)memset(&state,0,sizeof(state));
+    return (int)throttle_event(config->event,pad_throttle,state.Gamepad.wButtons,
+        state.Gamepad.bLeftTrigger,state.Gamepad.bRightTrigger);
 }
 static int sample(float *value,DIJOYSTATE2 *s,int *ignition)
 {
@@ -1067,6 +1087,14 @@ static void __attribute__((thiscall)) update(void *self,float dt)
     float brake=valid?pedal(*(float *)((char *)self+0x2dc)):0;
     /* Native pedal routing replaces reverse requests with forward gear. */
     int controller_gear=player&&controller_mode?*(int *)((char *)self+0x1e4):-1;
+    if(player&&controller_native_steering(source_kind==SOURCE_GAMEPAD,hooks_ready&&steering_supported,wheel[0x612be])){
+        /* The wheel's direct-angle path bypasses the game's controller deadzone. */
+        wheel[0x612bf]=0;MemoryBarrier();
+        InterlockedExchange((LONG *)(wheel+0x61304),0);
+        InterlockedExchange((LONG *)(wheel+0x612f8),0);
+        static int logged;
+        if(!logged){log_status("controller_native_steering=1 direct_wheel_angle=disabled native_deadzone=preserved");logged=1;}
+    }
     float raw_handbrake=0,applied_handbrake=0;
     int handbrake_applied=0;
     if(player&&handbrake_enabled){
@@ -1338,6 +1366,15 @@ static DWORD WINAPI install(void *unused)
     if(controller_mode&&(memcmp((void *)0x7fe150,pause_record,32)||memcmp((void *)0x571790,pause_bytes,10))){
         log_status("pause_scanner_guard_failed=1 no_hooks_installed=1");return 0;
     }
+    int override_throttle=source_kind==SOURCE_GAMEPAD&&pad_throttle;
+    const unsigned char throttle_bytes[10]={0x8b,0x4c,0x24,0x14,0x55,0x56,0x8b,0x74,0x24,0x18};
+    const uint32_t throttle_records[2][8]={
+        {0xff,0,0x92,0x579150,0x00400001,0x300,0,0x7a2d44},
+        {0xff,0,0x93,0x579150,0x00580001,0x301,0,0x7a2d44}};
+    if(override_throttle&&(memcmp((void *)0x579150,throttle_bytes,10)||
+       memcmp((void *)0x7fe190,throttle_records,sizeof(throttle_records)))){
+        log_status("throttle_scanner_guard_failed=1 no_hooks_installed=1");return 0;
+    }
     void **post_slot=(void **)0x7a2380;
     struct Hook {unsigned char *entry;const unsigned char *bytes;size_t n;void *target;unsigned char *trampoline;DWORD protection;} hooks[]={
         {(void *)0x593ee0,torque_bytes,sizeof(torque_bytes),(void *)engine_torque,NULL,0},
@@ -1358,7 +1395,7 @@ static DWORD WINAPI install(void *unused)
         log_status("spring_clutch_build_guard_failed=1");return 0;
     }
     unsigned prepared=0,suspended=0;HANDLE threads[256];
-    DWORD old_input=0,old_post_page=0,old_pause_page=0,ignored;
+    DWORD old_input=0,old_post_page=0,old_pause_page=0,old_throttle_page=0,ignored;
     for(unsigned i=0;i<hook_count;i++) {
         struct Hook *h=&hooks[i];
         h->trampoline=VirtualAlloc(NULL,32,MEM_COMMIT|MEM_RESERVE,PAGE_EXECUTE_READWRITE);
@@ -1372,6 +1409,7 @@ static DWORD WINAPI install(void *unused)
     if(!VirtualProtect(slot,sizeof(*slot),PAGE_READWRITE,&old_input))goto rollback;
     if(!VirtualProtect(post_slot,sizeof(*post_slot),PAGE_READWRITE,&old_post_page))goto rollback;
     if(controller_mode&&!VirtualProtect((void *)0x7fe15c,4,PAGE_READWRITE,&old_pause_page))goto rollback;
+    if(override_throttle&&!VirtualProtect((void *)0x7fe190,64,PAGE_READWRITE,&old_throttle_page))goto rollback;
     old_torque=(TorqueFn)hooks[0].trampoline;old_initial=(PostFn)hooks[1].trampoline;
     old_shifter_update=(ShifterUpdateFn)hooks[3].trampoline;
     old_rest=(RestFn)hooks[4].trampoline;
@@ -1398,15 +1436,21 @@ static DWORD WINAPI install(void *unused)
     }
     *post_slot=(void *)engine_post;*slot=(void *)update;hooks_ready=1;
     if(controller_mode){native_pause=(PauseScanFn)0x571790;InterlockedExchangePointer((void **)0x7fe15c,(void *)pause_scan);}
+    if(override_throttle){
+        InterlockedExchangePointer((void **)0x7fe19c,(void *)scan_throttle);
+        InterlockedExchangePointer((void **)0x7fe1bc,(void *)scan_throttle);
+    }
     resume_threads(threads,suspended);suspended=0;
     VirtualProtect(post_slot,sizeof(*post_slot),old_post_page,&ignored);
     VirtualProtect(slot,sizeof(*slot),old_input,&ignored);
+    if(old_throttle_page)VirtualProtect((void *)0x7fe190,64,old_throttle_page,&ignored);
     if(old_pause_page)VirtualProtect((void *)0x7fe15c,4,old_pause_page,&ignored);
     for(unsigned i=hook_count;i>0;i--)VirtualProtect(hooks[i-1].entry,hooks[i-1].n,hooks[i-1].protection,&ignored);
     log_status("shifter_owner_guarded=1 capture_masking_preserved=1 handback=neutral_rearm");
     log_status("pre_race_hold_handoff=1 native_forced_neutral_preserved=1");
     log_status("neutral_coast_guarded=1 human_manual_neutral_only=1 native_braking_preserved=1");
     log_status("ignition=remappable clutch_required=95pct native_pause_preserved=1");
+    if(override_throttle){char message[120];snprintf(message,sizeof(message),"throttle_source=configured_gamepad slot=%lu binding=0x%x alternate_zero=1",(unsigned long)gamepad_index,pad_throttle);log_status(message);}
     if(controller_mode)log_status("controller_shift_order=R,N,1,2,3,4,5,6 native_bindings=preserved reverse_requires_clutch_and_stop=1");
     log_status(synchronizer_model?
         "analog_clutch_hook_installed=1 model=synchronizer native_lock_bypassed=1 prediction=next_step_approx toggle=WheelFix_fallback bindings_preserved=1":
@@ -1415,6 +1459,7 @@ static DWORD WINAPI install(void *unused)
     goto pump;
 rollback:
     resume_threads(threads,suspended);
+    if(old_throttle_page)VirtualProtect((void *)0x7fe190,64,old_throttle_page,&ignored);
     if(old_post_page)VirtualProtect(post_slot,sizeof(*post_slot),old_post_page,&ignored);
     if(old_input)VirtualProtect(slot,sizeof(*slot),old_input,&ignored);
     if(old_pause_page)VirtualProtect((void *)0x7fe15c,4,old_pause_page,&ignored);

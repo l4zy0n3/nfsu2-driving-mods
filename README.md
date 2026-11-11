@@ -2,14 +2,16 @@
 
 Original clutch, gearbox, handbrake, controller feedback and camera extensions for Need for Speed: Underground 2.
 
-**Status: public FOSS alpha, `0.1.0-alpha.1`. Not a stable release.**
+**Status: public FOSS alpha, `0.1.0-alpha.2`. Not a stable release.**
 This checkout contains our mod source. The ASIs are 32-bit Windows binaries loaded by the existing game under Wine/Proton. The optional DualSense companion is a Linux program. This does not port or redistribute the game.
 
 ## Scope
 
 The fourteen retained features are listed in [FEATURES.md](docs/FEATURES.md). The main module supplies a synchronizer clutch/gearbox, per-car clutch profiles, clutch kick, optional stalling/ignition, grinding, paddle auto-clutch, tap/hold handbrake, neutral coasting integration and feedback telemetry. Two optional ASIs provide camera look and mirror/status panels.
 
-The alpha package excludes personal throttle/steering fixes, steering assistance, AWD changes, tyre/thermal extensions, extra drivetrain audio, RHD camera changes, unlocks, save edits, loading/traffic fixes, graphics wrappers and Spotify widgets. An optional [controller throttle compatibility correction](compat/README.md) is available as source after the clean-install test reproduced that input issue; its ASI is not installed by the alpha package. This repository contains no game assets, saves, Wine prefix, third-party mod binaries or proprietary decompilation exports.
+Input corrections use the selected input source and configurable bindings. Native throttle mapping is the default; installations with a combined-axis accelerator issue can opt into a selected XInput throttle binding. Gamepads retain the game's native steering/deadzone path. No controller model or personal calibration is baked into these corrections.
+
+The alpha package excludes bespoke steering assistance, AWD changes, tyre/thermal extensions, extra drivetrain audio, RHD camera changes, unlocks, save edits, loading/traffic fixes, graphics wrappers and Spotify widgets. This repository contains no game assets, saves, Wine prefix, third-party mod binaries or proprietary decompilation exports.
 
 ## Compatibility
 
@@ -35,7 +37,7 @@ Read [INSTALL.md](docs/INSTALL.md) and [CONTROLS.md](docs/CONTROLS.md). Installa
 
 Default clutch/ignition: **V + I** on keyboard, **LB + right-stick click** on XInput gamepads. Wheels use their calibrated clutch axis and a remappable ignition button, with I as a keyboard fallback. Stalling is off by default. The handbrake uses the game's own binding.
 
-The optional Linux DualSense companion supports USB product `054c:0ce6`. It requires readable/writable hidraw access, NumPy and PipeWire tools; `playerctl` enables optional touchpad media actions. Bluetooth and DualSense Edge are not enabled. Four-channel effects require a correctly configured DualSense audio sink. It does not route the game's audio.
+Standard rumble uses XInput on the selected gamepad. The optional Linux DualSense companion supports USB product `054c:0ce6`. It requires readable/writable hidraw access, NumPy and PipeWire tools; `playerctl` enables optional touchpad media actions. Bluetooth and DualSense Edge are not enabled. Four-channel effects require a correctly configured DualSense audio sink. If that transport fails, standard rumble retains ownership. Adaptive trigger effects follow the configured LT/RT action bindings. The companion does not route the game's audio. Install the ASIs and companion from the same package version.
 
 ## Release status
 

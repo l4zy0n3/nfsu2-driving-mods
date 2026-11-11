@@ -30,10 +30,17 @@ static float binding_press(unsigned binding,unsigned buttons,unsigned lt,unsigne
     if(binding==BIND_RT)return (rt>255?255:rt)/255.0f;
     return binding&&binding<=0xffff&&(buttons&binding)==binding?1.0f:0.0f;
 }
+/* The alternate native throttle event must not add a second accelerator value. */
+static unsigned throttle_event(unsigned event,unsigned binding,unsigned buttons,unsigned lt,unsigned rt)
+{
+    unsigned value=(unsigned)(binding_press(binding,buttons,lt,rt)*255.0f+.5f);
+    return event|((event==0x92?value:0)<<8);
+}
 static int clutch_axis(const char *name)
 {
     const char *axes[]={"X","Y","Z","RX","RY","RZ","SLIDER0","SLIDER1"};
-    for(int i=0;i<8;i++)if(!strcmp(name,axes[i]))return i;
+    const char *native[]={"X","Y","Z","Rx","Ry","Rz","S0","S1"};
+    for(int i=0;i<8;i++)if(!strcmp(name,axes[i])||!strcmp(name,native[i]))return i;
     return -1;
 }
 static int consume_ignition_start(int *latched,int uses_start,int ignition,int clutch_down,int start_down)

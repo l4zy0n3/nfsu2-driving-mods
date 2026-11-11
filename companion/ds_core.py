@@ -43,7 +43,10 @@ def telemetry(data):
     if len(data) != 128:
         return None
     magic, version, sequence, tick, flags, gear = struct.unpack_from('<5Ii', data)
-    if magic != MAGIC or version != 1 or sequence & 1 or flags & ~63 or not 0 <= gear <= 9:
+    if magic != MAGIC or version != 1 or sequence & 1 or flags & ~1023 or not 0 <= gear <= 9:
+        return None
+    clutch_trigger, throttle_trigger = (flags >> 6) & 3, (flags >> 8) & 3
+    if clutch_trigger == 3 or throttle_trigger == 3 or (clutch_trigger and clutch_trigger == throttle_trigger):
         return None
     values = struct.unpack_from('<14f', data, 24)
     if not all(math.isfinite(v) for v in values):
@@ -79,7 +82,8 @@ def telemetry(data):
         result.update(slip_left=slips[0], slip_right=slips[1])
     result.update(sequence=sequence, tick=tick, gear=gear, active=(flags & 3) == 3, focused=bool(flags & 2),
                   stalled=bool(flags & 4), cranking=bool(flags & 8),
-                  grinding=bool(flags & 16), manual=bool(flags & 32))
+                  grinding=bool(flags & 16), manual=bool(flags & 32),
+                  clutch_trigger=clutch_trigger, throttle_trigger=throttle_trigger)
     return result
 
 
@@ -140,7 +144,12 @@ def feedback(sample, config, now):
             if shift > 0 and sample['rpm'] > shift:
                 color = (65, 35, 140) if int(now * 8) % 2 else (10, 0, 30)
                 leds = 31 if int(now * 8) % 2 else 0
-    return left, right, color, leds
+    triggers = [OFF, OFF, OFF]
+    if sample.get('clutch_trigger') in (1, 2):
+        triggers[sample['clutch_trigger']] = left
+    if sample.get('throttle_trigger') in (1, 2):
+        triggers[sample['throttle_trigger']] = right
+    return triggers[1], triggers[2], color, leds
 
 
 def output_report(left=OFF, right=OFF, color=(0, 0, 0), leds=0, speaker=False):
@@ -148,7 +157,7 @@ def output_report(left=OFF, right=OFF, color=(0, 0, 0), leds=0, speaker=False):
         raise ValueError('Invalid USB output')
     packet = bytearray(63)
     packet[0] = 2
-    # Trigger-only reports leave compatible rumble disabled; PCM drives the grips.
+    # Trigger-only reports leave motor ownership to native rumble or PCM.
     packet[1] = 0x0C
     packet[2] = 0x14
     # Keep the kernel's speaker/headset routing and hardware volume untouched.

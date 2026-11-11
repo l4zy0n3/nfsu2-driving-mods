@@ -25,7 +25,7 @@ def payload(root):
     for name in ('bridge.py', 'run.py', 'ds_core.py', 'ds_motion.py', 'ds_audio.py', 'requirements.txt'):
         files['companion/' + name] = (root / 'companion' / name).read_bytes()
     # Corresponding source accompanies every binary package, including build/install tools.
-    for directory in ('src', 'compat', 'companion', 'config', 'tools', 'tests', 'docs', '.github'):
+    for directory in ('src', 'companion', 'config', 'tools', 'tests', 'docs', '.github'):
         for source in sorted((root / directory).rglob('*')):
             if source.suffix not in ('.c', '.h', '.py', '.ini', '.txt', '.md', '.json', '.yml'):
                 continue

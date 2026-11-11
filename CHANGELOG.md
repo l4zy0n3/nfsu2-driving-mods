@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-alpha.2 — controller feedback corrections
+
+- Address the DualSense PipeWire sink by object serial rather than node ID, with a regression fixture where those values differ.
+- Keep XInput steering on the game's native deadzone path instead of Wheel Fix's direct wheel-angle override. Wheel input remains unchanged.
+- Replace the standalone controller-specific throttle fix with an opt-in binding in the main mod. It uses the selected XInput slot, accepts trigger/button bindings, and leaves native throttle as the package default.
+- Release standard rumble ownership when the optional PCM transport fails or is disabled.
+- Route adaptive trigger effects to the configured clutch/throttle triggers; leave unrelated triggers free.
+- Accept Wheel Fix's native axis aliases and use binding-neutral stall prompts.
+
+
 ## 0.1.0-alpha.1 — release preparation
 
 - Release the mod source as GPL-3.0-or-later, with corresponding source included in binary packages.

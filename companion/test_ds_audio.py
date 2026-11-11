@@ -17,15 +17,15 @@ def graph():
         {'id': 10, 'type': 'PipeWire:Interface:Device', 'info': {'props': {
             'device.vendor.id': '0x054c', 'device.product.id': '0x0ce6'}}},
         {'id': 20, 'type': 'PipeWire:Interface:Node', 'info': {'props': {
-            'device.id': 10, 'media.class': 'Audio/Sink', 'audio.channels': 4,
+            'device.id': 10, 'object.serial': 200, 'media.class': 'Audio/Sink', 'audio.channels': 4,
             'audio.position': '[ FL, FR, RL, RR ]'}}},
     ]
 
 
 class TargetTests(unittest.TestCase):
     def test_requires_identity_channel_order_and_unique_device(self):
-        self.assertEqual(ds.audio_target(graph()), '20')
-        for key, value in (('audio.channels', 2), ('audio.position', '[ RL RR FL FR ]'), ('device.id', 99)):
+        self.assertEqual(ds.audio_target(graph()), '200')
+        for key, value in (('audio.channels', 2), ('audio.position', '[ RL RR FL FR ]'), ('device.id', 99), ('object.serial', None), ('object.serial', 0)):
             nodes = graph()
             nodes[1]['info']['props'][key] = value
             with self.assertRaises(ValueError): ds.audio_target(nodes)
@@ -246,7 +246,7 @@ class TransportTests(unittest.TestCase):
     def test_exact_target_format_and_no_fallback(self):
         self.assertTrue(self.audio.tick(sample(rpm=3000), 0))
         command = self.popen.call_args.args[0]
-        for option, expected in (("--target", '20'), ("--rate", "48000"),
+        for option, expected in (("--target", '200'), ("--rate", "48000"),
                                  ("--channels", "4"), ("--channel-map", "FL,FR,RL,RR"),
                                  ("--format", "s16")):
             self.assertEqual(command[command.index(option) + 1], expected)
